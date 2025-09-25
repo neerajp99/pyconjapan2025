@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🧢 Modern 3D Cap & Hat Designer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #333;
+        overflow-x: hidden;
+      }
+
+      .container {
+        display: grid;
+        grid-template-columns: 320px 1fr 280px;
+        grid-template-rows: 70px 1fr;
+        grid-template-areas:
+          "header header header"
+          "controls viewer metrics";
+        height: 100vh;
+        gap: 15px;
+        padding: 15px;
+      }
+
+      .header {
+        grid-area: header;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 15px 25px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        background: linear-gradient(45deg, #2c3e50, #3498db);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .header .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #666;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #27ae60;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .controls-panel {
+        grid-area: controls;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .viewer-panel {
+        grid-area: viewer;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 15px;
+        position: relative;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .metrics-panel {
+        grid-area: metrics;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .control-group {
+        margin-bottom: 25px;
+      }
+
+      .control-group h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .control-group h3::before {
+        content: "";
+        width: 4px;
+        height: 16px;
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border-radius: 2px;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #555;
+        margin-bottom: 6px;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        background: #fff;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+      }
+
+      .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        color: white;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+      }
+
+      .btn-secondary {
+        background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+        color: white;
+        width: 100%;
+      }
+
+      .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(149, 165, 166, 0.3);
+      }
+
+      .style-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .style-option {
+        padding: 10px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .style-option:hover {
+        border-color: #3498db;
+        background: rgba(52, 152, 219, 0.05);
+      }
+
+      .style-option.active {
+        border-color: #3498db;
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        color: white;
+      }
+
+      .pattern-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .pattern-option {
+        padding: 12px 8px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .pattern-option:hover {
+        border-color: #e74c3c;
+        background: rgba(231, 76, 60, 0.05);
+      }
+
+      .pattern-option.active {
+        border-color: #e74c3c;
+        background: linear-gradient(45deg, #e74c3c, #c0392b);
+        color: white;
+      }
+
+      .packing-options {
+        display: flex;
+        gap: 5px;
+        margin-bottom: 15px;
+      }
+
+      .packing-option {
+        flex: 1;
+        padding: 8px 4px;
+        border: 2px solid #e1e8ed;
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+
+      .packing-option:hover {
+        border-color: #f39c12;
+        background: rgba(243, 156, 18, 0.05);
+      }
+
+      .packing-option.active {
+        border-color: #f39c12;
+        background: linear-gradient(45deg, #f39c12, #e67e22);
+        color: white;
+      }
+
+      .range-input {
+        width: 100%;
+        margin: 10px 0;
+      }
+
+      .range-value {
+        display: inline-block;
+        background: #ecf0f1;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2c3e50;
+        min-width: 50px;
+        text-align: center;
+      }
+
+      #three-canvas {
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      }
+
+      .viewer-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .viewer-btn {
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+      }
+
+      .viewer-btn:hover {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .metric-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 4px solid #3498db;
+      }
+
+      .metric-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+      }
+
+      .metric-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #3498db;
+        margin-bottom: 5px;
+      }
+
+      .metric-description {
+        font-size: 0.75rem;
+        color: #666;
+        line-height: 1.4;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: #ecf0f1;
+        border-radius: 3px;
+        overflow: hidden;
+        margin: 8px 0;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(45deg, #27ae60, #2ecc71);
+        border-radius: 3px;
+        transition: width 0.5s ease;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      .loading.show {
+        display: block;
+      }
+
+      .spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 1200px) {
+        .container {
+          grid-template-columns: 280px 1fr 250px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto 1fr auto;
+          grid-template-areas:
+            "header"
+            "controls"
+            "viewer"
+            "metrics";
+          height: auto;
+          min-height: 100vh;
+        }
+
+        .controls-panel,
+        .metrics-panel {
+          max-height: 300px;
+        }
+
+        .viewer-panel {
+          min-height: 400px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🧢 Modern Cap Designer</h1>
+        <div class="status">
+          <div class="status-dot"></div>
+          <span>Ready to Design</span>
+        </div>
+      </div>
+
+      <div class="controls-panel">
+        <div class="control-group">
+          <h3>🎩 Cap Style</h3>
+          <div class="style-selector">
+            <div class="style-option active" data-style="baseball">
+              ⚾ Baseball
+            </div>
+            <div class="style-option" data-style="beanie">🧢 Beanie</div>
+            <div class="style-option" data-style="bucket">🪣 Bucket</div>
+            <div class="style-option" data-style="snapback">📐 Snapback</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>🎨 Pattern Type</h3>
+          <div class="pattern-grid">
+            <div class="pattern-option active" data-pattern="mesh">🕸️ Mesh</div>
+            <div class="pattern-option" data-pattern="perforated">
+              ⚫ Perforated
+            </div>
+            <div class="pattern-option" data-pattern="geometric">
+              🔷 Geometric
+            </div>
+            <div class="pattern-option" data-pattern="organic">🌿 Organic</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>📦 Pattern Density</h3>
+          <div class="packing-options">
+            <div class="packing-option" data-packing="close_packed">Dense</div>
+            <div class="packing-option active" data-packing="medium_packed">
+              Medium
+            </div>
+            <div class="packing-option" data-packing="loose_packed">Loose</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>📏 Dimensions</h3>
+          <div class="form-group">
+            <label for="head-circumference"
+              >Head Circumference:
+              <span class="range-value" id="circumference-value"
+                >58 cm</span
+              ></label
+            >
+            <input
+              type="range"
+              id="head-circumference"
+              class="range-input"
+              min="50"
+              max="70"
+              value="58"
+              step="0.5"
+            />
+          </div>
+        </div>
+
+        <div class="control-group">
+          <h3>🧪 Material</h3>
+          <div class="form-group">
+            <select id="material" class="form-control">
+              <option value="PLA">PLA (Rigid, Easy Print)</option>
+              <option value="PETG">PETG (Flexible, Strong)</option>
+              <option value="TPU">TPU (Very Flexible)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <button id="generate-btn" class="btn btn-primary">
+            🚀 Generate Cap
+          </button>
+          <button id="export-btn" class="btn btn-secondary" disabled>
+            📥 Export STL
+          </button>
+        </div>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <div>Generating your cap...</div>
+        </div>
+      </div>
+
+      <div class="viewer-panel">
+        <canvas id="three-canvas"></canvas>
+        <div class="viewer-controls">
+          <button class="viewer-btn" onclick="resetCamera()">
+            🎯 Reset View
+          </button>
+          <button class="viewer-btn" onclick="toggleWireframe()">
+            🔲 Wireframe
+          </button>
+        </div>
+      </div>
+
+      <div class="metrics-panel">
+        <div class="control-group">
+          <h3>📊 Comfort Analysis</h3>
+
+          <div class="metric-card">
+            <div class="metric-title">Overall Comfort</div>
+            <div class="metric-value" id="comfort-score">--</div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="comfort-progress"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="metric-description">
+              Combined comfort rating based on fit, breathability, and
+              flexibility
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-title">Breathability</div>
+            <div class="metric-value" id="breathability-score">--</div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="breathability-progress"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="metric-description">
+              Airflow and ventilation efficiency
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-title">Flexibility</div>
+            <div class="metric-value" id="flexibility-score">--</div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="flexibility-progress"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="metric-description">
+              Material flexibility and comfort
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-title">Fit Quality</div>
+            <div class="metric-value" id="fit-score">--</div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                id="fit-progress"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="metric-description">Head shape compatibility</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-title">Estimated Weight</div>
+            <div class="metric-value" id="weight-value">-- g</div>
+            <div class="metric-description">
+              Approximate weight when 3D printed
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Three.js variables
+      let scene, camera, renderer, controls;
+      let currentMesh = null;
+      let currentGeometry = null;
+      let wireframeMode = false;
+
+      // UI state
+      let currentCapStyle = "baseball";
+      let currentPattern = "mesh";
+      let currentPacking = "medium_packed";
+
+      // Initialize Three.js
+      function initThreeJS() {
+        const canvas = document.getElementById("three-canvas");
+        const container = canvas.parentElement;
+
+        // Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf8f9fa);
+
+        // Camera
+        camera = new THREE.PerspectiveCamera(
+          75,
+          container.clientWidth / container.clientHeight,
+          0.1,
+          1000
+        );
+        camera.position.set(20, 15, 20);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 100;
+        controls.minDistance = 5;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(30, 30, 30);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        // Additional lights for better visualization
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.4);
+        light2.position.set(-20, 20, -20);
+        scene.add(light2);
+
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(40, 40, 0xcccccc, 0xeeeeee);
+        scene.add(gridHelper);
+
+        // Handle window resize
+        window.addEventListener("resize", onWindowResize);
+
+        // Start render loop
+        animate();
+      }
+
+      function onWindowResize() {
+        const container = document.getElementById("three-canvas").parentElement;
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      function resetCamera() {
+        camera.position.set(20, 15, 20);
+        controls.target.set(0, 0, 0);
+        controls.update();
+      }
+
+      function toggleWireframe() {
+        wireframeMode = !wireframeMode;
+        if (currentMesh) {
+          currentMesh.material.wireframe = wireframeMode;
+        }
+      }
+
+      // UI Event Handlers
+      function setupEventHandlers() {
+        // Style selection
+        document.querySelectorAll(".style-option").forEach((option) => {
+          option.addEventListener("click", function () {
+            document
+              .querySelectorAll(".style-option")
+              .forEach((o) => o.classList.remove("active"));
+            this.classList.add("active");
+            currentCapStyle = this.dataset.style;
+          });
+        });
+
+        // Pattern selection
+        document.querySelectorAll(".pattern-option").forEach((option) => {
+          option.addEventListener("click", function () {
+            document
+              .querySelectorAll(".pattern-option")
+              .forEach((o) => o.classList.remove("active"));
+            this.classList.add("active");
+            currentPattern = this.dataset.pattern;
+          });
+        });
+
+        // Packing selection
+        document.querySelectorAll(".packing-option").forEach((option) => {
+          option.addEventListener("click", function () {
+            document
+              .querySelectorAll(".packing-option")
+              .forEach((o) => o.classList.remove("active"));
+            this.classList.add("active");
+            currentPacking = this.dataset.packing;
+          });
+        });
+
+        // Head circumference slider
+        const circumferenceSlider =
+          document.getElementById("head-circumference");
+        const circumferenceValue = document.getElementById(
+          "circumference-value"
+        );
+        circumferenceSlider.addEventListener("input", function () {
+          circumferenceValue.textContent = this.value + " cm";
+        });
+
+        // Generate button
+        document
+          .getElementById("generate-btn")
+          .addEventListener("click", generateCap);
+
+        // Export button
+        document
+          .getElementById("export-btn")
+          .addEventListener("click", exportSTL);
+      }
+
+      async function generateCap() {
+        const loading = document.getElementById("loading");
+        const generateBtn = document.getElementById("generate-btn");
+
+        loading.classList.add("show");
+        generateBtn.disabled = true;
+
+        try {
+          const response = await fetch("/generate_cap", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              cap_style: currentCapStyle,
+              pattern_type: currentPattern,
+              packing_type: currentPacking,
+              head_circumference:
+                document.getElementById("head-circumference").value,
+              material: document.getElementById("material").value,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            displayCap(data.geometry);
+            updateMetrics(data.geometry.comfort_metrics);
+            document.getElementById("export-btn").disabled = false;
+          } else {
+            alert("Error generating cap: " + data.error);
+          }
+        } catch (error) {
+          alert("Error: " + error.message);
+        } finally {
+          loading.classList.remove("show");
+          generateBtn.disabled = false;
+        }
+      }
+
+      function displayCap(geometry) {
+        // Remove existing mesh
+        if (currentMesh) {
+          scene.remove(currentMesh);
+        }
+
+        // Create geometry
+        const vertices = new Float32Array(geometry.vertices);
+        const indices = new Uint32Array(geometry.faces);
+
+        const bufferGeometry = new THREE.BufferGeometry();
+        bufferGeometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(vertices, 3)
+        );
+        bufferGeometry.setIndex(new THREE.BufferAttribute(indices, 1));
+        bufferGeometry.computeVertexNormals();
+
+        // Create material
+        const material = new THREE.MeshLambertMaterial({
+          color: 0x3498db,
+          side: THREE.DoubleSide,
+          wireframe: wireframeMode,
+        });
+
+        // Create mesh
+        currentMesh = new THREE.Mesh(bufferGeometry, material);
+        currentMesh.castShadow = true;
+        currentMesh.receiveShadow = true;
+
+        scene.add(currentMesh);
+        currentGeometry = geometry;
+
+        // Center the camera on the cap
+        const box = new THREE.Box3().setFromObject(currentMesh);
+        const center = box.getCenter(new THREE.Vector3());
+        controls.target.copy(center);
+        controls.update();
+      }
+
+      function updateMetrics(metrics) {
+        // Update comfort scores
+        document.getElementById("comfort-score").textContent =
+          metrics.comfort_score + "%";
+        document.getElementById("comfort-progress").style.width =
+          metrics.comfort_score + "%";
+
+        document.getElementById("breathability-score").textContent =
+          metrics.breathability + "%";
+        document.getElementById("breathability-progress").style.width =
+          metrics.breathability + "%";
+
+        document.getElementById("flexibility-score").textContent =
+          metrics.flexibility + "%";
+        document.getElementById("flexibility-progress").style.width =
+          metrics.flexibility + "%";
+
+        document.getElementById("fit-score").textContent =
+          metrics.fit_quality + "%";
+        document.getElementById("fit-progress").style.width =
+          metrics.fit_quality + "%";
+
+        document.getElementById("weight-value").textContent =
+          metrics.estimated_weight + " g";
+      }
+
+      async function exportSTL() {
+        if (!currentGeometry) {
+          alert("Please generate a cap first");
+          return;
+        }
+
+        try {
+          const response = await fetch("/export_stl", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              vertices: currentGeometry.vertices,
+              faces: currentGeometry.faces,
+            }),
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `modern_cap_${Date.now()}.stl`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+          } else {
+            alert("Error exporting STL file");
+          }
+        } catch (error) {
+          alert("Error: " + error.message);
+        }
+      }
+
+      // Initialize everything when page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        initThreeJS();
+        setupEventHandlers();
+      });
+    </script>
+  </body>
+</html>

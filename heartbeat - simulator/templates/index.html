@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Heartbeat Bracelet Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .controls-panel {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        .visualization-panel {
+            flex: 1;
+            position: relative;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .parameter-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .parameter-group h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .parameter {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #ffd700;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        select option {
+            background: #333;
+            color: white;
+        }
+        
+        .value-display {
+            float: right;
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+        }
+        
+        .generate-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #threejs-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 100;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffd700;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(40, 167, 69, 0.4);
+        }
+        
+        .heartbeat-preview {
+            width: 100%;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .heartbeat-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ffd700;
+            transform: translateY(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls-panel">
+            <h1>💓 3D Heartbeat Bracelet</h1>
+            
+            <div class="parameter-group">
+                <h3>🫀 Heartbeat Parameters</h3>
+                
+                <div class="parameter">
+                    <label>Heart Rate (BPM) <span class="value-display" id="heart-rate-value">70</span></label>
+                    <input type="range" id="heart-rate" min="40" max="200" value="70">
+                </div>
+                
+                <div class="parameter">
+                    <label>Stress Level <span class="value-display" id="stress-level-value">0.5</span></label>
+                    <input type="range" id="stress-level" min="0" max="1" step="0.1" value="0.5">
+                </div>
+                
+                <div class="parameter">
+                    <label>Activity Level <span class="value-display" id="activity-level-value">0.3</span></label>
+                    <input type="range" id="activity-level" min="0" max="1" step="0.1" value="0.3">
+                </div>
+                
+                <div class="parameter">
+                    <label>Emotion</label>
+                    <select id="emotion">
+                        <option value="calm">😌 Calm</option>
+                        <option value="excited">🤩 Excited</option>
+                        <option value="anxious">😰 Anxious</option>
+                        <option value="relaxed">😴 Relaxed</option>
+                    </select>
+                </div>
+                
+                <div class="parameter">
+                    <label>Duration (seconds) <span class="value-display" id="duration-value">10</span></label>
+                    <input type="range" id="duration" min="5" max="30" value="10">
+                </div>
+                
+                <div class="heartbeat-preview" id="heartbeat-preview">
+                    <canvas id="heartbeat-canvas" width="300" height="80"></canvas>
+                </div>
+            </div>
+            
+            <div class="parameter-group">
+                <h3>💍 Bracelet Design</h3>
+                
+                <div class="parameter">
+                    <label>Radius (mm) <span class="value-display" id="radius-value">30</span></label>
+                    <input type="range" id="radius" min="20" max="50" value="30">
+                </div>
+                
+                <div class="parameter">
+                    <label>Thickness (mm) <span class="value-display" id="thickness-value">5</span></label>
+                    <input type="range" id="thickness" min="2" max="10" value="5">
+                </div>
+                
+                <div class="parameter">
+                    <label>Height Variation <span class="value-display" id="height-variation-value">0.8</span></label>
+                    <input type="range" id="height-variation" min="0" max="2" step="0.1" value="0.8">
+                </div>
+                
+                <div class="parameter">
+                    <label>Pattern Intensity <span class="value-display" id="pattern-intensity-value">1.0</span></label>
+                    <input type="range" id="pattern-intensity" min="0.1" max="2" step="0.1" value="1.0">
+                </div>
+                
+                <div class="parameter">
+                    <label>Smoothness <span class="value-display" id="smoothness-value">0.7</span></label>
+                    <input type="range" id="smoothness" min="0" max="1" step="0.1" value="0.7">
+                </div>
+            </div>
+            
+            <button class="generate-btn" id="generate-btn">🚀 Generate 3D Bracelet</button>
+            
+            <div id="download-section" style="display: none; margin-top: 20px;">
+                <h3 style="color: #ffd700; margin-bottom: 10px;">📥 Download</h3>
+                <button class="download-btn" id="download-stl">📄 Download STL</button>
+                <button class="download-btn" id="download-obj">📄 Download OBJ</button>
+            </div>
+        </div>
+        
+        <div class="visualization-panel">
+            <div id="threejs-container">
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Generating your heartbeat bracelet...</p>
+                </div>
+            </div>
+            
+            <div class="info-panel" id="info-panel" style="display: none;">
+                <h3 style="color: #ffd700; margin-bottom: 10px;">🔍 Bracelet Info</h3>
+                <p><strong>Vertices:</strong> <span id="vertex-count">-</span></p>
+                <p><strong>Faces:</strong> <span id="face-count">-</span></p>
+                <p><strong>Printable:</strong> ✅ Yes</p>
+                <p><strong>Material:</strong> PLA/ABS</p>
+                <p style="margin-top: 10px; font-size: 12px; color: #ccc;">
+                    🖱️ Click and drag to rotate<br>
+                    🔍 Scroll to zoom<br>
+                    ✋ Right-click to pan
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

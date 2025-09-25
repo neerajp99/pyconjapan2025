@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎌 Origami Generative Design Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #2a2a3e, #1a1a2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        #pattern-display {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        #pattern-display:hover {
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+        }
+        
+        #controls {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            overflow-y: auto;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #info {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        
+        select, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        select option {
+            background: #2a2a3e;
+            color: white;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+        
+        .slider-container span {
+            min-width: 40px;
+            text-align: right;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        #stats {
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .pattern-preview {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .pattern-option {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            border: 2px solid transparent;
+        }
+        
+        .pattern-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+        }
+        
+        .pattern-option.selected {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 200;
+            display: none;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .export-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .export-controls button {
+            font-size: 12px;
+            padding: 8px;
+        }
+        
+        .animation-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .animation-controls button {
+            flex: 1;
+            font-size: 12px;
+            padding: 8px;
+        }
+        
+        #animation-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+        
+        .cut-line { background: red; }
+        .mountain-fold { background: blue; }
+        .valley-fold { background: green; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="info">
+            <div class="title">📊 Pattern Statistics</div>
+            <div id="stats">
+                <div class="stat-item">
+                    <span>Pattern Type:</span>
+                    <span id="pattern-type">None</span>
+                </div>
+                <div class="stat-item">
+                    <span>Total Lines:</span>
+                    <span id="total-lines">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Cut Lines:</span>
+                    <span id="cut-lines">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Fold Lines:</span>
+                    <span id="fold-lines">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>Animation Frame:</span>
+                    <span id="frame-number">0</span>
+                </div>
+            </div>
+            
+            <div class="title" style="margin-top: 25px;">🎨 Line Legend</div>
+            <div id="line-legend">
+                <div class="legend-item">
+                    <div class="legend-color cut-line"></div>
+                    <span>Cut Lines (Laser Cut)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color mountain-fold"></div>
+                    <span>Mountain Folds</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color valley-fold"></div>
+                    <span>Valley Folds</span>
+                </div>
+            </div>
+            
+            <div class="title" style="margin-top: 25px;">✂️ Export Options</div>
+            <div class="control-group">
+                <div class="export-controls">
+                    <button id="export-svg">📄 SVG</button>
+                    <button id="export-dxf">📐 DXF</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #ccc; text-align: center;">
+                    Production-ready formats for laser cutting
+                </div>
+            </div>
+        </div>
+        
+        <div id="canvas-container">
+            <img id="pattern-display" src="" alt="Generated Pattern" style="display: none;">
+            
+            <div id="loading">
+                <div class="spinner"></div>
+                <div>Generating Origami Pattern...</div>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <div class="title">🎌 Origami Designer</div>
+            
+            <div class="control-group">
+                <label>Pattern Type</label>
+                <div class="pattern-preview">
+                    <div class="pattern-option selected" data-pattern="miura_fold">
+                        🗾 Miura Fold<br>
+                        <small>Classic tessellation pattern</small>
+                    </div>
+                    <div class="pattern-option" data-pattern="dragon_scale">
+                        🐉 Dragon Scale<br>
+                        <small>Hexagonal scale pattern</small>
+                    </div>
+                    <div class="pattern-option" data-pattern="waterbomb">
+                        💧 Waterbomb Base<br>
+                        <small>Expandable tessellation</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Pattern Parameters</label>
+                <div class="slider-container">
+                    <span>Size:</span>
+                    <input type="range" id="size-slider" min="20" max="80" value="40">
+                    <span id="size-value">40</span>
+                </div>
+                <div class="slider-container">
+                    <span>Variation:</span>
+                    <input type="range" id="variation-slider" min="0" max="1.0" step="0.01" value="0.1">
+                    <span id="variation-value">0.1</span>
+                </div>
+                <div class="slider-container">
+                    <span>Rotation:</span>
+                    <input type="range" id="rotation-slider" min="0" max="360" value="0">
+                    <span id="rotation-value">0°</span>
+                </div>
+                <div class="slider-container">
+                    <span>Complexity:</span>
+                    <input type="range" id="complexity-slider" min="1" max="8" value="3">
+                    <span id="complexity-value">3</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>🔄 Symmetry & Design</label>
+                <div class="slider-container">
+                    <span>Symmetry:</span>
+                    <input type="checkbox" id="symmetry-checkbox" checked>
+                    <span id="symmetry-status">On</span>
+                </div>
+                <div class="slider-container">
+                    <span>Randomness:</span>
+                    <input type="range" id="randomness-slider" min="0" max="1.0" step="0.01" value="0.0">
+                    <span id="randomness-value">0.0</span>
+                </div>
+                <div class="slider-container">
+                    <span>Smoothness:</span>
+                    <input type="range" id="smoothness-slider" min="0.1" max="2.0" step="0.1" value="1.0">
+                    <span id="smoothness-value">1.0</span>
+                </div>
+                <div class="slider-container">
+                    <span>Pattern Mix:</span>
+                    <input type="range" id="pattern-mixing-slider" min="0" max="0.8" step="0.01" value="0.0">
+                    <span id="pattern-mixing-value">0.0</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Animation</label>
+                <div class="slider-container">
+                    <span>Speed:</span>
+                    <input type="range" id="animation-speed-slider" min="0.005" max="0.05" step="0.005" value="0.02">
+                    <span id="animation-speed-value">0.02</span>
+                </div>
+                <div class="animation-controls">
+                    <button id="animate-btn">▶️ Animate</button>
+                    <button id="stop-btn">⏹️ Stop</button>
+                </div>
+                <div id="animation-status">Animation Stopped</div>
+            </div>
+            
+            <div class="control-group">
+                <button id="generate-btn">🎨 Generate Pattern</button>
+                <button id="randomize-btn">🎲 Randomize</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPattern = 'miura_fold';
+        let currentParams = {};
+        let animationInterval = null;
+        let isAnimating = false;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateParams();
+            generatePattern();
+        });
+        
+        function setupEventListeners() {
+            // Pattern selection
+            document.querySelectorAll('.pattern-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.pattern-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentPattern = this.dataset.pattern;
+                    generatePattern();
+                });
+            });
+            
+            // Sliders
+            const sliders = ['size', 'variation', 'rotation', 'complexity', 'animation-speed', 'randomness', 'smoothness', 'pattern-mixing'];
+            sliders.forEach(slider => {
+                const element = document.getElementById(`${slider}-slider`);
+                const valueElement = document.getElementById(`${slider}-value`);
+                
+                element.addEventListener('input', function() {
+                    let value = this.value;
+                    if (slider === 'rotation') {
+                        value += '°';
+                    }
+                    valueElement.textContent = value;
+                    updateParams();
+                    if (!isAnimating) {
+                        generatePattern();
+                    }
+                });
+            });
+            
+            // Symmetry checkbox
+            document.getElementById('symmetry-checkbox').addEventListener('change', function() {
+                const status = document.getElementById('symmetry-status');
+                status.textContent = this.checked ? 'On' : 'Off';
+                updateParams();
+                if (!isAnimating) {
+                    generatePattern();
+                }
+            });
+            
+            // Buttons
+            document.getElementById('generate-btn').addEventListener('click', generatePattern);
+            document.getElementById('randomize-btn').addEventListener('click', randomizeParams);
+            document.getElementById('animate-btn').addEventListener('click', startAnimation);
+            document.getElementById('stop-btn').addEventListener('click', stopAnimation);
+            document.getElementById('export-svg').addEventListener('click', () => exportPattern('svg'));
+            document.getElementById('export-dxf').addEventListener('click', () => exportPattern('dxf'));
+        }
+        
+        function updateParams() {
+            const sizeSlider = document.getElementById('size-slider');
+            const variationSlider = document.getElementById('variation-slider');
+            const rotationSlider = document.getElementById('rotation-slider');
+            const complexitySlider = document.getElementById('complexity-slider');
+            const animationSpeedSlider = document.getElementById('animation-speed-slider');
+            const symmetryCheckbox = document.getElementById('symmetry-checkbox');
+            const randomnessSlider = document.getElementById('randomness-slider');
+            const smoothnessSlider = document.getElementById('smoothness-slider');
+            const patternMixingSlider = document.getElementById('pattern-mixing-slider');
+            
+            currentParams = {
+                fold_width: parseInt(sizeSlider.value),
+                fold_height: parseInt(sizeSlider.value) * 0.75,
+                scale_size: parseInt(sizeSlider.value),
+                cell_size: parseInt(sizeSlider.value),
+                variation: parseFloat(variationSlider.value),
+                rotation: parseFloat(rotationSlider.value) * Math.PI / 180,
+                complexity: parseInt(complexitySlider.value),
+                animation_speed: parseFloat(animationSpeedSlider.value),
+                symmetry: symmetryCheckbox.checked,
+                randomness: parseFloat(randomnessSlider.value),
+                smoothness: parseFloat(smoothnessSlider.value),
+                pattern_mixing: parseFloat(patternMixingSlider.value)
+            };
+        }
+        
+        function generatePattern() {
+            showLoading();
+            
+            fetch('/api/generate_pattern', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pattern_type: currentPattern,
+                    params: currentParams
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    document.getElementById('pattern-display').src = data.image;
+                    document.getElementById('pattern-display').style.display = 'block';
+                    
+                    // Update stats
+                    updateStats(data.stats);
+                    
+                    // Store pattern data for export
+                    window.currentPatternData = data.pattern_data;
+                } else {
+                    console.error('Error generating pattern:', data.error);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+            });
+        }
+        
+        function startAnimation() {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            document.getElementById('animation-status').textContent = 'Animation Running';
+            
+            animationInterval = setInterval(() => {
+                fetch('/api/animate_pattern', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pattern_type: currentPattern,
+                        params: currentParams
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('pattern-display').src = data.frame;
+                        document.getElementById('frame-number').textContent = data.frame_number;
+                    }
+                })
+                .catch(error => console.error('Animation error:', error));
+            }, 100); // 10 FPS
+        }
+        
+        function stopAnimation() {
+            if (!isAnimating) return;
+            
+            isAnimating = false;
+            clearInterval(animationInterval);
+            document.getElementById('animation-status').textContent = 'Animation Stopped';
+            generatePattern(); // Generate final static pattern
+        }
+        
+        function randomizeParams() {
+            document.getElementById('size-slider').value = Math.random() * 60 + 20;
+            document.getElementById('variation-slider').value = Math.random() * 0.8;
+            document.getElementById('rotation-slider').value = Math.random() * 360;
+            document.getElementById('complexity-slider').value = Math.floor(Math.random() * 8) + 1;
+            document.getElementById('randomness-slider').value = Math.random() * 0.6;
+            document.getElementById('smoothness-slider').value = Math.random() * 1.5 + 0.5;
+            document.getElementById('pattern-mixing-slider').value = Math.random() * 0.4;
+            document.getElementById('symmetry-checkbox').checked = Math.random() > 0.3;
+            
+            // Update displays
+            document.getElementById('size-value').textContent = document.getElementById('size-slider').value;
+            document.getElementById('variation-value').textContent = document.getElementById('variation-slider').value;
+            document.getElementById('rotation-value').textContent = document.getElementById('rotation-slider').value + '°';
+            document.getElementById('complexity-value').textContent = document.getElementById('complexity-slider').value;
+            document.getElementById('randomness-value').textContent = document.getElementById('randomness-slider').value;
+            document.getElementById('smoothness-value').textContent = document.getElementById('smoothness-slider').value;
+            document.getElementById('pattern-mixing-value').textContent = document.getElementById('pattern-mixing-slider').value;
+            document.getElementById('symmetry-status').textContent = document.getElementById('symmetry-checkbox').checked ? 'On' : 'Off';
+            
+            updateParams();
+            generatePattern();
+        }
+        
+        function exportPattern(format) {
+            if (!window.currentPatternData) {
+                alert('Please generate a pattern first');
+                return;
+            }
+            
+            fetch('/api/export_pattern', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pattern_data: window.currentPatternData,
+                    format: format
+                })
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `origami_pattern.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => console.error('Export error:', error));
+        }
+        
+        function updateStats(stats) {
+            document.getElementById('pattern-type').textContent = stats.pattern_type.replace('_', ' ').toUpperCase();
+            document.getElementById('total-lines').textContent = stats.total_lines;
+            document.getElementById('cut-lines').textContent = stats.cut_lines;
+            document.getElementById('fold-lines').textContent = stats.fold_lines;
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

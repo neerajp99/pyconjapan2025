@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌿 Nature-Inspired 3D Cap Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            grid-template-rows: 80px 1fr;
+            grid-template-areas: 
+                "header header header"
+                "controls viewer metrics";
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .header {
+            grid-area: header;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #2E8B57, #228B22);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls-panel {
+            grid-area: controls;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .viewer-container {
+            grid-area: viewer;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .metrics-panel {
+            grid-area: metrics;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(240, 248, 255, 0.8);
+            border-radius: 12px;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .control-group h3 {
+            color: #2E8B57;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-item {
+            margin-bottom: 15px;
+        }
+
+        .control-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .control-item input, .control-item select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-item input:focus, .control-item select:focus {
+            outline: none;
+            border-color: #2E8B57;
+            box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1);
+        }
+
+        .slider-container {
+            position: relative;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #e0e0e0 0%, #2E8B57 0%);
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2E8B57;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2E8B57;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider-value {
+            position: absolute;
+            right: 0;
+            top: -25px;
+            background: #2E8B57;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #2E8B57, #228B22);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(46, 139, 87, 0.3);
+        }
+
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .metric-card {
+            background: rgba(46, 139, 87, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .metric-card h4 {
+            color: #2E8B57;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .metric-unit {
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        .comfort-score {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #2E8B57, #228B22);
+            color: white;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .comfort-score h3 {
+            margin-bottom: 10px;
+        }
+
+        .score-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2E8B57;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .pattern-preview {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .pattern-option {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .pattern-option:hover {
+            border-color: #2E8B57;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(46, 139, 87, 0.2);
+        }
+
+        .pattern-option.selected {
+            border-color: #2E8B57;
+            background: rgba(46, 139, 87, 0.1);
+        }
+
+        .pattern-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .pattern-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .viewer-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 5;
+        }
+
+        .viewer-btn {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .viewer-btn:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "viewer"
+                    "controls"
+                    "metrics";
+                grid-template-rows: auto auto 1fr auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 Nature-Inspired 3D Cap Simulator</h1>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span style="color: #666;">Physics-Based Adaptive Design</span>
+                <span style="background: #2E8B57; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem;">3D Printable</span>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>🧢 Basic Parameters</h3>
+                <div class="control-item">
+                    <label for="head-circumference">Head Circumference (cm)</label>
+                    <div class="slider-container">
+                        <input type="range" id="head-circumference" class="slider" min="50" max="70" value="58" step="0.5">
+                        <span class="slider-value">58.0 cm</span>
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label for="cap-height">Cap Height (cm)</label>
+                    <div class="slider-container">
+                        <input type="range" id="cap-height" class="slider" min="5" max="15" value="8" step="0.5">
+                        <span class="slider-value">8.0 cm</span>
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label for="flexibility">Flexibility Factor</label>
+                    <div class="slider-container">
+                        <input type="range" id="flexibility" class="slider" min="0" max="1" value="0.5" step="0.1">
+                        <span class="slider-value">0.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🌿 Nature Pattern</h3>
+                <div class="pattern-preview">
+                    <div class="pattern-option selected" data-pattern="honeycomb">
+                        <div class="pattern-icon">🍯</div>
+                        <div class="pattern-name">Honeycomb</div>
+                    </div>
+                    <div class="pattern-option" data-pattern="spiral">
+                        <div class="pattern-icon">🐚</div>
+                        <div class="pattern-name">Spiral Shell</div>
+                    </div>
+                    <div class="pattern-option" data-pattern="leaf">
+                        <div class="pattern-icon">🍃</div>
+                        <div class="pattern-name">Leaf Veins</div>
+                    </div>
+                    <div class="pattern-option" data-pattern="tree">
+                        <div class="pattern-icon">🌳</div>
+                        <div class="pattern-name">Tree Branch</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group" id="pattern-specific-controls">
+                <h3>🔧 Pattern Settings</h3>
+                <div id="honeycomb-controls">
+                    <div class="control-item">
+                        <label for="cell-size">Cell Size (mm)</label>
+                        <div class="slider-container">
+                            <input type="range" id="cell-size" class="slider" min="0.8" max="3.0" value="1.5" step="0.1">
+                            <span class="slider-value">1.5 mm</span>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label for="wall-thickness">Wall Thickness (mm)</label>
+                        <div class="slider-container">
+                            <input type="range" id="wall-thickness" class="slider" min="0.4" max="1.5" value="0.8" step="0.1">
+                            <span class="slider-value">0.8 mm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>🧪 Material Properties</h3>
+                <div class="control-item">
+                    <label for="material">3D Printing Material</label>
+                    <select id="material">
+                        <option value="PLA">PLA (Rigid, Easy Print)</option>
+                        <option value="PETG">PETG (Flexible, Strong)</option>
+                        <option value="TPU">TPU (Very Flexible)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="generate-btn" id="generate-cap">
+                🎨 Generate 3D Cap
+            </button>
+        </div>
+
+        <div class="viewer-container">
+            <div class="viewer-controls">
+                <button class="viewer-btn" id="reset-view" title="Reset View">🔄</button>
+                <button class="viewer-btn" id="wireframe-toggle" title="Toggle Wireframe">📐</button>
+                <button class="viewer-btn" id="fullscreen-toggle" title="Fullscreen">⛶</button>
+            </div>
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Generating your nature-inspired cap...</p>
+            </div>
+            <canvas id="three-canvas"></canvas>
+        </div>
+
+        <div class="metrics-panel">
+            <div class="comfort-score">
+                <h3>Comfort Score</h3>
+                <div class="score-circle" id="comfort-score">--</div>
+            </div>
+
+            <div class="metric-card">
+                <h4>📏 Weight</h4>
+                <div class="metric-value" id="weight-value">--</div>
+                <span class="metric-unit">grams</span>
+            </div>
+
+            <div class="metric-card">
+                <h4>💨 Pressure Distribution</h4>
+                <div class="metric-value" id="pressure-value">--</div>
+                <span class="metric-unit">g/cm²</span>
+            </div>
+
+            <div class="metric-card">
+                <h4>🌬️ Ventilation Score</h4>
+                <div class="metric-value" id="ventilation-value">--</div>
+                <span class="metric-unit">/ 100</span>
+            </div>
+
+            <div class="metric-card">
+                <h4>🧪 Material Properties</h4>
+                <div style="font-size: 0.9rem; margin-top: 8px;">
+                    <div>Flexibility: <span id="material-flexibility">--</span></div>
+                    <div>Strength: <span id="material-strength">--</span></div>
+                    <div>Printability: <span id="material-printability">--</span></div>
+                </div>
+            </div>
+
+            <button class="export-btn" id="export-stl" disabled>
+                📥 Export STL for 3D Printing
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, controls;
+        let currentMesh = null;
+        let currentMeshData = null;
+        let isWireframe = false;
+
+        // Initialize Three.js
+        function initThreeJS() {
+            const canvas = document.getElementById('three-canvas');
+            const container = canvas.parentElement;
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf8f9fa);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(15, 15, 15);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(20, 20, 20);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(30, 30, 0xcccccc, 0xeeeeee);
+            scene.add(gridHelper);
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Start render loop
+            animate();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('three-canvas').parentElement;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // UI Event Handlers
+        function setupEventHandlers() {
+            // Slider updates
+            document.querySelectorAll('.slider').forEach(slider => {
+                slider.addEventListener('input', function() {
+                    const valueSpan = this.parentElement.querySelector('.slider-value');
+                    let value = parseFloat(this.value);
+                    let unit = '';
+                    
+                    if (this.id.includes('circumference') || this.id.includes('height')) {
+                        unit = ' cm';
+                    } else if (this.id.includes('size') || this.id.includes('thickness')) {
+                        unit = ' mm';
+                    }
+                    
+                    valueSpan.textContent = value.toFixed(1) + unit;
+                    
+                    // Update slider background
+                    const percentage = ((value - this.min) / (this.max - this.min)) * 100;
+                    this.style.background = `linear-gradient(to right, #2E8B57 0%, #2E8B57 ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
+                });
+                
+                // Trigger initial update
+                slider.dispatchEvent(new Event('input'));
+            });
+
+            // Pattern selection
+            document.querySelectorAll('.pattern-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.pattern-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    updatePatternControls(this.dataset.pattern);
+                });
+            });
+
+            // Generate button
+            document.getElementById('generate-cap').addEventListener('click', generateCap);
+
+            // Viewer controls
+            document.getElementById('reset-view').addEventListener('click', resetView);
+            document.getElementById('wireframe-toggle').addEventListener('click', toggleWireframe);
+            document.getElementById('fullscreen-toggle').addEventListener('click', toggleFullscreen);
+
+            // Export button
+            document.getElementById('export-stl').addEventListener('click', exportSTL);
+
+            // Material selection
+            document.getElementById('material').addEventListener('change', updateMaterialProperties);
+        }
+
+        function updatePatternControls(pattern) {
+            const controlsContainer = document.getElementById('pattern-specific-controls');
+            const patternControls = controlsContainer.querySelector('div[id$="-controls"]');
+            
+            if (patternControls) {
+                patternControls.style.display = 'none';
+            }
+
+            // Show relevant controls
+            const targetControls = document.getElementById(pattern + '-controls');
+            if (targetControls) {
+                targetControls.style.display = 'block';
+            }
+        }
+
+        function updateMaterialProperties() {
+            const material = document.getElementById('material').value;
+            const properties = {
+                'PLA': { flexibility: '0.2', strength: '0.8', printability: '0.9' },
+                'PETG': { flexibility: '0.5', strength: '0.7', printability: '0.8' },
+                'TPU': { flexibility: '0.9', strength: '0.4', printability: '0.6' }
+            };
+
+            const props = properties[material];
+            document.getElementById('material-flexibility').textContent = props.flexibility;
+            document.getElementById('material-strength').textContent = props.strength;
+            document.getElementById('material-printability').textContent = props.printability;
+        }
+
+        async function generateCap() {
+            const generateBtn = document.getElementById('generate-cap');
+            const loading = document.getElementById('loading');
+            
+            generateBtn.disabled = true;
+            generateBtn.textContent = '🔄 Generating...';
+            loading.style.display = 'block';
+
+            try {
+                // Collect parameters
+                const selectedPattern = document.querySelector('.pattern-option.selected').dataset.pattern;
+                const parameters = {
+                    pattern_type: selectedPattern,
+                    head_circumference: parseFloat(document.getElementById('head-circumference').value),
+                    height: parseFloat(document.getElementById('cap-height').value),
+                    flexibility: parseFloat(document.getElementById('flexibility').value),
+                    material: document.getElementById('material').value
+                };
+
+                // Add pattern-specific parameters
+                if (selectedPattern === 'honeycomb') {
+                    parameters.cell_size = parseFloat(document.getElementById('cell-size').value);
+                    parameters.wall_thickness = parseFloat(document.getElementById('wall-thickness').value);
+                }
+
+                // Send request to backend
+                const response = await fetch('/generate_cap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(parameters)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentMeshData = result.mesh_data;
+                    displayMesh(result.mesh_data);
+                    updateMetrics(result.mesh_data.comfort_metrics);
+                    document.getElementById('export-stl').disabled = false;
+                } else {
+                    alert('Error generating cap: ' + result.error);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate cap. Please try again.');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🎨 Generate 3D Cap';
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayMesh(meshData) {
+            // Remove existing mesh
+            if (currentMesh) {
+                scene.remove(currentMesh);
+            }
+
+            // Create geometry
+            const geometry = new THREE.BufferGeometry();
+            
+            // Convert vertices and faces
+            const vertices = new Float32Array(meshData.vertices.flat());
+            const indices = new Uint32Array(meshData.faces.flat());
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+            geometry.computeVertexNormals();
+
+            // Create material
+            const material = new THREE.MeshLambertMaterial({
+                color: 0x2E8B57,
+                side: THREE.DoubleSide,
+                wireframe: isWireframe
+            });
+
+            // Create mesh
+            currentMesh = new THREE.Mesh(geometry, material);
+            currentMesh.castShadow = true;
+            currentMesh.receiveShadow = true;
+            
+            scene.add(currentMesh);
+
+            // Center the view
+            const box = new THREE.Box3().setFromObject(currentMesh);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            controls.target.copy(center);
+            camera.position.copy(center);
+            camera.position.add(new THREE.Vector3(size.x * 2, size.y * 2, size.z * 2));
+            controls.update();
+        }
+
+        function updateMetrics(metrics) {
+            document.getElementById('comfort-score').textContent = metrics.comfort_score;
+            document.getElementById('weight-value').textContent = metrics.weight;
+            document.getElementById('pressure-value').textContent = metrics.pressure;
+            document.getElementById('ventilation-value').textContent = metrics.ventilation;
+
+            // Update comfort score color
+            const scoreElement = document.getElementById('comfort-score');
+            const score = metrics.comfort_score;
+            if (score >= 80) {
+                scoreElement.style.background = 'rgba(34, 139, 34, 0.8)';
+            } else if (score >= 60) {
+                scoreElement.style.background = 'rgba(255, 165, 0, 0.8)';
+            } else {
+                scoreElement.style.background = 'rgba(220, 20, 60, 0.8)';
+            }
+        }
+
+        function resetView() {
+            if (currentMesh) {
+                const box = new THREE.Box3().setFromObject(currentMesh);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                
+                controls.target.copy(center);
+                camera.position.copy(center);
+                camera.position.add(new THREE.Vector3(size.x * 2, size.y * 2, size.z * 2));
+                controls.update();
+            }
+        }
+
+        function toggleWireframe() {
+            isWireframe = !isWireframe;
+            if (currentMesh) {
+                currentMesh.material.wireframe = isWireframe;
+            }
+            
+            const btn = document.getElementById('wireframe-toggle');
+            btn.textContent = isWireframe ? '🔲' : '📐';
+        }
+
+        function toggleFullscreen() {
+            const container = document.querySelector('.viewer-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        async function exportSTL() {
+            if (!currentMeshData) {
+                alert('Please generate a cap first!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/export_stl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        vertices: currentMeshData.vertices,
+                        faces: currentMeshData.faces
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `nature_cap_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.stl`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to export STL file');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Failed to export STL file');
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initThreeJS();
+            setupEventHandlers();
+            updateMaterialProperties();
+            
+            // Generate initial cap
+            setTimeout(() => {
+                generateCap();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+flask==2.3.3
+numpy==1.24.3
+pillow==10.0.0
+matplotlib==3.7.2

@@ -1,0 +1,557 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎌 Origami Outfit Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .visualization-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .size-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .fold-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .outfit-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .outfit-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .outfit-info h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .outfit-list {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+        }
+        
+        .outfit-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .outfit-item.current {
+            border-left: 5px solid #667eea;
+            background: #e8f0fe;
+        }
+        
+        .outfit-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .size-grid,
+            .fold-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎌 Origami Outfit Simulator</h1>
+            <p>Create wearable art through computational origami</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="control-panel">
+                <h2>🎨 Design Your Outfit</h2>
+                
+                <div class="form-group">
+                    <label for="outfit-type">Outfit Type</label>
+                    <select id="outfit-type">
+                        <option value="dress">Dress</option>
+                        <option value="kimono">Kimono</option>
+                        <option value="jacket">Jacket</option>
+                        <option value="skirt">Skirt</option>
+                        <option value="top">Top</option>
+                        <option value="cape">Cape</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fold-pattern">Origami Pattern</label>
+                    <select id="fold-pattern">
+                        <option value="miura">Miura Fold</option>
+                        <option value="waterbomb">Waterbomb Base</option>
+                        <option value="yoshimoto">Yoshimoto Cube</option>
+                        <option value="dragon_scale">Dragon Scale</option>
+                        <option value="tessellation">Tessellation</option>
+                        <option value="hexagonal">Hexagonal</option>
+                    </select>
+                </div>
+                
+                <h3>📏 Size Parameters (cm)</h3>
+                <div class="size-grid">
+                    <div class="form-group">
+                        <label for="bust">Bust</label>
+                        <input type="number" id="bust" value="90" min="60" max="150">
+                    </div>
+                    <div class="form-group">
+                        <label for="waist">Waist</label>
+                        <input type="number" id="waist" value="70" min="50" max="120">
+                    </div>
+                    <div class="form-group">
+                        <label for="hip">Hip</label>
+                        <input type="number" id="hip" value="95" min="70" max="160">
+                    </div>
+                    <div class="form-group">
+                        <label for="length">Length</label>
+                        <input type="number" id="length" value="120" min="40" max="200">
+                    </div>
+                </div>
+                
+                <h3>🎌 Fold Parameters</h3>
+                <div class="fold-grid">
+                    <div class="form-group">
+                        <label for="complexity">Complexity (1-10)</label>
+                        <input type="range" id="complexity" min="1" max="10" value="5" oninput="updateComplexityValue(this.value)">
+                        <span id="complexity-value">5</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="amplitude">Amplitude (0.1-1.0)</label>
+                        <input type="range" id="amplitude" min="0.1" max="1.0" step="0.1" value="0.5" oninput="updateAmplitudeValue(this.value)">
+                        <span id="amplitude-value">0.5</span>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="createOutfit()">🎨 Create Outfit</button>
+                <button class="btn btn-secondary" onclick="modifyCurrentOutfit()">🔧 Modify Current</button>
+                <button class="btn btn-success" onclick="exportCurrentOutfit()">📦 Export Current</button>
+            </div>
+            
+            <div class="visualization-panel">
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Creating your origami masterpiece...</p>
+                </div>
+                
+                <div id="outfit-display">
+                    <h2>👗 Your Origami Creation</h2>
+                    <p>Design an outfit to see the visualization here</p>
+                    <div style="height: 400px; background: #f8f9fa; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-top: 20px;">
+                        <span style="font-size: 4em; opacity: 0.3;">🎌</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="outfit-list">
+            <h2>📋 Created Outfits</h2>
+            <div id="outfit-list-container">
+                <p>No outfits created yet. Start designing!</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentOutfitId = null;
+        
+        function updateComplexityValue(value) {
+            document.getElementById('complexity-value').textContent = value;
+        }
+        
+        function updateAmplitudeValue(value) {
+            document.getElementById('amplitude-value').textContent = value;
+        }
+        
+        async function createOutfit() {
+            const loading = document.getElementById('loading');
+            const display = document.getElementById('outfit-display');
+            
+            loading.style.display = 'block';
+            display.style.display = 'none';
+            
+            const data = {
+                outfit_type: document.getElementById('outfit-type').value,
+                fold_pattern: document.getElementById('fold-pattern').value,
+                bust: document.getElementById('bust').value,
+                waist: document.getElementById('waist').value,
+                hip: document.getElementById('hip').value,
+                length: document.getElementById('length').value,
+                complexity: document.getElementById('complexity').value,
+                amplitude: document.getElementById('amplitude').value
+            };
+            
+            try {
+                const response = await fetch('/api/create_outfit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentOutfitId = result.outfit_id;
+                    displayOutfit(result);
+                    updateOutfitList();
+                } else {
+                    alert('Error creating outfit: ' + result.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+            
+            loading.style.display = 'none';
+            display.style.display = 'block';
+        }
+        
+        function displayOutfit(result) {
+            const display = document.getElementById('outfit-display');
+            const outfit = result.outfit_info;
+            
+            display.innerHTML = `
+                <h2>👗 ${outfit.type.charAt(0).toUpperCase() + outfit.type.slice(1)} - ${outfit.fold_pattern.charAt(0).toUpperCase() + outfit.fold_pattern.slice(1)}</h2>
+                <img src="data:image/png;base64,${result.visualization}" alt="Origami Outfit" class="outfit-image">
+                
+                <div class="outfit-info">
+                    <h3>📊 Outfit Details</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Type:</strong> ${outfit.type}
+                        </div>
+                        <div class="info-item">
+                            <strong>Pattern:</strong> ${outfit.fold_pattern}
+                        </div>
+                        <div class="info-item">
+                            <strong>Complexity:</strong> ${outfit.fold_params.complexity}
+                        </div>
+                        <div class="info-item">
+                            <strong>Amplitude:</strong> ${outfit.fold_params.amplitude}
+                        </div>
+                        <div class="info-item">
+                            <strong>Vertices:</strong> ${outfit.mesh_stats.vertices}
+                        </div>
+                        <div class="info-item">
+                            <strong>Faces:</strong> ${outfit.mesh_stats.faces}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function updateOutfitList() {
+            try {
+                const response = await fetch('/api/list_outfits');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const container = document.getElementById('outfit-list-container');
+                    
+                    if (result.outfits.length === 0) {
+                        container.innerHTML = '<p>No outfits created yet. Start designing!</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = result.outfits.map(outfit => `
+                        <div class="outfit-item ${outfit.id === result.current_outfit ? 'current' : ''}">
+                            <div>
+                                <strong>${outfit.type.charAt(0).toUpperCase() + outfit.type.slice(1)}</strong> - 
+                                ${outfit.fold_pattern.charAt(0).toUpperCase() + outfit.fold_pattern.slice(1)}
+                                <br>
+                                <small>Complexity: ${outfit.complexity}, Amplitude: ${outfit.amplitude}</small>
+                            </div>
+                            <div class="outfit-actions">
+                                <button class="btn btn-small" onclick="selectOutfit('${outfit.id}')">Select</button>
+                                <button class="btn btn-small btn-secondary" onclick="exportOutfit('${outfit.id}')">Export</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error updating outfit list:', error);
+            }
+        }
+        
+        async function modifyCurrentOutfit() {
+            if (!currentOutfitId) {
+                alert('No outfit selected. Create or select an outfit first.');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const display = document.getElementById('outfit-display');
+            
+            loading.style.display = 'block';
+            display.style.display = 'none';
+            
+            const data = {
+                outfit_id: currentOutfitId,
+                complexity: document.getElementById('complexity').value,
+                amplitude: document.getElementById('amplitude').value
+            };
+            
+            try {
+                const response = await fetch('/api/modify_outfit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update display with new visualization
+                    const display = document.getElementById('outfit-display');
+                    const currentImg = display.querySelector('.outfit-image');
+                    if (currentImg) {
+                        currentImg.src = `data:image/png;base64,${result.visualization}`;
+                    }
+                    updateOutfitList();
+                } else {
+                    alert('Error modifying outfit: ' + result.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+            
+            loading.style.display = 'none';
+            display.style.display = 'block';
+        }
+        
+        async function exportCurrentOutfit() {
+            if (!currentOutfitId) {
+                alert('No outfit selected. Create or select an outfit first.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/export_outfit/${currentOutfitId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Outfit exported successfully!\nFiles created: ${result.exported_files.join(', ')}`);
+                } else {
+                    alert('Error exporting outfit: ' + result.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+        }
+        
+        async function exportOutfit(outfitId) {
+            try {
+                const response = await fetch(`/api/export_outfit/${outfitId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Outfit exported successfully!\nFiles created: ${result.exported_files.join(', ')}`);
+                } else {
+                    alert('Error exporting outfit: ' + result.error);
+                }
+            } catch (error) {
+                alert('Network error: ' + error.message);
+            }
+        }
+        
+        function selectOutfit(outfitId) {
+            currentOutfitId = outfitId;
+            updateOutfitList();
+            // You could also load and display the selected outfit here
+        }
+        
+        // Load outfit list on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateOutfitList();
+        });
+    </script>
+</body>
+</html>
+    
